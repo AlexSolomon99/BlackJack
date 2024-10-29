@@ -1,0 +1,10 @@
+{
+    "game_config": {
+      "num_players": 5,
+      "num_decks": 5,
+      "min_bet": 10.0,
+      "dealer_soft_17": "H",
+      "blackjack_payout": 1.5,
+      "seed": 0
+    }
+}

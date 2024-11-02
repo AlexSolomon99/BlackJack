@@ -3,6 +3,7 @@ import copy
 
 import cards
 
+
 class Player:
 
     def __init__(self, initial_money: float):
@@ -15,14 +16,45 @@ class Player:
         self.historical_money = []
         self.historical_actions = []
 
-    def create_hand(self, dealt_cards: [], init_bet: float):
-        playing_hand = {
-            "cards": dealt_cards,
-            "min_card_value": None,
-            "max_card_value": None,
-            "bet": init_bet
-        }
+    @staticmethod
+    def create_hand(dealt_cards: [], init_bet: float):
+        playing_hand = BlackJackHand(initial_cards=dealt_cards,
+                                     initial_bet=init_bet)
         return playing_hand
+
+    def set_initial_hand(self, dealt_cards: [], init_bet: float):
+        # create hand
+        hand = self.create_hand(dealt_cards=dealt_cards, init_bet=init_bet)
+        self.hands = [hand]
+
+        # remove bet from the currently owned money
+        self.current_money -= init_bet
+
+    def hit(self, new_card: cards.BlackJackCard, hand_idx):
+        # get the current hand
+        current_hand = self.hands[hand_idx]
+
+        # add the new card to the hand
+        current_hand.add_card_to_hand(new_card=new_card, additional_bet=0)
+
+        # reset the hands list
+        self.hands[hand_idx] = current_hand
+
+    def double(self, new_card: cards.BlackJackCard, bet, hand_idx):
+        # get the current hand
+        current_hand = self.hands[hand_idx]
+
+        # add the new card to the hand
+        current_hand.add_card_to_hand(new_card=new_card, additional_bet=bet)
+
+        # remove bet from the current amount of money
+        self.current_money -= bet
+
+        # reset the hands list
+        self.hands[hand_idx] = current_hand
+
+    def split(self):
+        pass
 
 
 class BlackJackHand:
@@ -45,6 +77,9 @@ class BlackJackHand:
             new_values.sort()
             values = copy.deepcopy(new_values)
 
+        values = list(set(values))
+        values.sort()
+
         return values
 
     def add_card_value(self, new_card: cards.BlackJackCard):
@@ -54,6 +89,7 @@ class BlackJackHand:
                 new_sum = val + card_val
                 new_values.append(new_sum)
 
+        new_values = list(set(new_values))
         new_values.sort()
         self.card_values = copy.deepcopy(new_values)
 

@@ -1,6 +1,7 @@
 import random
 
 import cards
+import player
 
 
 class BlackJack:
@@ -23,6 +24,8 @@ class BlackJack:
         random.shuffle(self.deck)
 
         # create the players
+        for num_player in range(self.num_players):
+            self.players_dict[num_player] = player.Player()
 
 
     def create_multiple_card_decks(self, num_decks: int) -> list:

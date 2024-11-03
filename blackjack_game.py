@@ -1,5 +1,8 @@
 import random
 
+import cards
+import player
+
 
 class BlackJack:
 
@@ -21,6 +24,8 @@ class BlackJack:
         random.shuffle(self.deck)
 
         # create the players
+        for num_player in range(self.num_players):
+            self.players_dict[num_player] = player.Player()
 
 
     def create_multiple_card_decks(self, num_decks: int) -> list:
@@ -53,11 +58,11 @@ class BlackJack:
         card_suits = ["hearts", "diamonds", "spades", "clubs"]
 
         for num in range(2, 10):
-            numbered_suits = [(num, suit) for suit in card_suits]
+            numbered_suits = [cards.BlackJackCard(face_value=str(num), symbol=suit) for suit in card_suits]
             card_deck.extend(numbered_suits)
 
         for symbol in ["jack", "queen", "king", "ace"]:
-            symbol_suits = [(symbol, suit) for suit in card_suits]
+            symbol_suits = [cards.BlackJackCard(face_value=symbol, symbol=suit) for suit in card_suits]
             card_deck.extend(symbol_suits)
 
         return card_deck

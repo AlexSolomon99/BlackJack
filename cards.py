@@ -27,3 +27,8 @@ class BlackJackCard:
         except KeyError:
             raise KeyError(f"The face value of the card is unknown: {self.face_value}")
 
+    def __eq__(self, other):
+        if self.face_value == other.face_value:
+            return True
+        return False
+

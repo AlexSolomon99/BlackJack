@@ -6,9 +6,11 @@ import player
 
 class BlackJack:
 
-    def __init__(self, game_config: dict, deterministic=False):
+    def __init__(self, game_config: dict, log, deterministic=False):
         # get the config
         self.game_config = game_config
+        self.log = log
+        self.log.info(f"Game config: {self.game_config}")
 
         # set the random seed if required
         if deterministic:

@@ -1,14 +1,24 @@
-# num players: 5-9
-# num decks: 1-8
+import os
 
-# actions:
-# 1. Hit: take a card
-# 2. Stand: end turn without taking a card
-# 3. Double: Double the wager, take a card and Stand
-# 4. Split: If the 2 cards have the same value, separate them to make 2 hands
-# 5. Surrender: Retire from the game and give up half the bet
+import logger
+import blackjack_game
+import utils
+
+# set up the logger
+log_conf_path = r"./conf/log_conf.txt"
+log = logger.BJLog(conf_file_path=log_conf_path).create_logger(app_name="BlackJack")
+log.info(f"Start game!")
+
+# config path
+log.info(f"Get the game configuration")
+base_conf = r"./conf"
+game_config_path = os.path.join(base_conf, "game_config.json")
+game_config = utils.read_json(game_config_path)
+
+app = blackjack_game.BlackJack(game_config=game_config,
+                               deterministic=True,
+                               log=log)
+
+log.info(f"App finished!")
 
 
-# dealer stop at 17
-
-# payout is 1:1 if you win. blackjack payout is 3:2

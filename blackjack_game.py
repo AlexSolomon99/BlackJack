@@ -6,6 +6,13 @@ import player
 
 class BlackJack:
 
+    # actions
+    HIT = "hit"
+    DOUBLE = "double"
+    SPLIT = "split"
+    STAND = "stand"
+    SURRENDER = "surrender"
+
     def __init__(self, game_config: dict, log, deterministic=False):
         # get the config
         self.game_config = game_config
@@ -19,6 +26,10 @@ class BlackJack:
         # game attributes
         self.deck = []
         self.players_dict = {}
+        self.current_player_idx = 0
+
+        # reset
+        self.reset()
 
     def reset(self):
         # create the playing card deck and shuffle it
@@ -27,7 +38,15 @@ class BlackJack:
 
         # create the players
         for num_player in range(self.num_players):
-            self.players_dict[num_player] = player.Player()
+            self.players_dict[num_player] = player.Player(initial_money=self.default_init_money)
+        self.current_player_idx = 0
+
+    def step(self, player_action: str = None):
+        current_player = self.players_dict[self.current_player_idx]
+        current_hand = current_player.hands[current_player.current_hand_idx]
+
+        # validate action - check if the action is possible
+        is_action_possible = current_hand.is_action_possible()
 
 
     def create_multiple_card_decks(self, num_decks: int) -> list:
@@ -131,3 +150,12 @@ class BlackJack:
         :return type: int
         """
         return self.game_config["seed"]
+
+    @property
+    def default_init_money(self):
+        """
+        Property used to get the default value for the initial money a player can have at the table.
+        :return: Initial sum of money a player has.
+        :return type: float
+        """
+        return self.game_config["default_init_money"]

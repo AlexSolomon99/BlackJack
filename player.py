@@ -11,80 +11,18 @@ class Player:
         self.initial_money = initial_money
         self.current_money = initial_money
         self.hands = []
-
-        # initialise historical data
-        self.historical_money = []
-        self.historical_actions = []
+        self.current_hand_idx = 0
 
     @staticmethod
     def create_hand(dealt_cards: [], init_bet: float):
         playing_hand = BlackJackHand(initial_cards=dealt_cards,
-                                     initial_bet=init_bet)
+                                     money_value=init_bet)
         return playing_hand
 
     def set_initial_hand(self, dealt_cards: [], init_bet: float):
         # create hand
         hand = self.create_hand(dealt_cards=dealt_cards, init_bet=init_bet)
         self.hands = [hand]
-
-        # remove bet from the currently owned money
-        self.current_money -= init_bet
-
-        # set the possible actions
-        self.possible_actions = [self.HIT, self.DOUBLE, self.STAND, self.SURRENDER]
-
-        # check if split is a possible action
-        if hand.cards[0] == hand.cards[1]:
-            self.possible_actions.append(self.SPLIT)
-
-    def hit(self, new_card: cards.BlackJackCard, hand_idx):
-        # get the current hand
-        current_hand = self.hands[hand_idx]
-
-        # add the new card to the hand
-        current_hand.add_card_to_hand(new_card=new_card, additional_bet=0)
-
-        # reset the hands list
-        self.hands[hand_idx] = current_hand
-
-        # set the possible actions
-        self.possible_actions = [self.HIT, self.DOUBLE, self.STAND, self.SURRENDER]
-
-    def double(self, new_card: cards.BlackJackCard, bet, hand_idx):
-        # get the current hand
-        current_hand = self.hands[hand_idx]
-
-        # add the new card to the hand
-        current_hand.add_card_to_hand(new_card=new_card, additional_bet=bet)
-
-        # remove bet from the current amount of money
-        self.current_money -= bet
-
-        # reset the hands list
-        self.hands[hand_idx] = current_hand
-
-        # set the possible actions
-        self.possible_actions = [self.STAND, self.SURRENDER]
-
-    def split(self, new_card_1, new_card_2):
-        # get info about the current hand
-        current_hand = self.hands[0]
-        initial_cards = current_hand.cards
-        initial_bet = current_hand.bet
-
-        self.hands = []
-
-        # create the first new hand
-        first_hand = self.create_hand(dealt_cards=[initial_cards[0], new_card_1], init_bet=initial_bet)
-
-        # create the second new hand
-        second_hand = self.create_hand(dealt_cards=[initial_cards[1], new_card_2], init_bet=initial_bet)
-
-        # save the hands
-        self.hands = [first_hand, second_hand]
-
-        # bet again for the second hand
-        self.current_money -= initial_bet
 
 
 class BlackJackHand:
@@ -98,12 +36,44 @@ class BlackJackHand:
     SURRENDER = "surrender"
 
     def __init__(self, initial_cards: List[cards.BlackJackCard], money_value: float):
-        self.cards = initial_cards
-        self.card_values = self.compute_hand_values()
+        # win status
+        self.blackjack_status = False
+        self.win_status = False
         self.money_value = money_value
 
         # set the hand's status
         self.possible_actions = [self.WAIT]
+
+        # set the cards
+        self.cards = None
+        self.card_values = None
+        self.set_initial_cards(initial_cards=initial_cards)
+
+    def apply_action(self, action):
+        action_dict = {
+            self.STAND: self.stand,
+            self.HIT: self.hit,
+        }
+        return action_dict[action]
+
+    def is_action_possible(self, action):
+        if action in self.possible_actions:
+            return True
+        return False
+
+    def set_initial_cards(self, initial_cards):
+        self.cards = initial_cards
+        self.card_values = self.compute_hand_values()
+
+        # check the card values
+        if 21 in self.card_values:
+            self.win_status = True
+            self.blackjack_status = True
+            self.possible_actions = [self.STAND]
+        else:
+            self.possible_actions = [self.HIT, self.DOUBLE, self.STAND, self.SURRENDER]
+            if self.cards[0] == self.cards[1]:
+                self.possible_actions.append(self.SPLIT)
 
     def compute_hand_values(self):
         values = [0]
@@ -143,8 +113,14 @@ class BlackJackHand:
         # add the new card to the hand
         self.add_card_to_hand(new_card=new_card, additional_bet=0)
 
-        # set the possible actions
-        self.possible_actions = [self.HIT, self.DOUBLE, self.STAND, self.SURRENDER]
+        # check the card values
+        if 21 in self.card_values:
+            self.win_status = True
+        elif min(self.card_values) > 21:
+            self.possible_actions = [self.STAND]
+        else:
+            # set the possible actions
+            self.possible_actions = [self.HIT, self.DOUBLE, self.STAND, self.SURRENDER]
 
     def double(self, new_card: cards.BlackJackCard, bet):
         # add the new card to the hand
@@ -174,6 +150,9 @@ class BlackJackHand:
         second_hand = BlackJackHand(initial_cards=[initial_cards[1], new_card_2], money_value=initial_bet)
 
         return first_hand, second_hand
+
+    def stand(self):
+        return None
 
 
 

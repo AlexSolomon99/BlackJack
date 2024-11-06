@@ -1,6 +1,7 @@
 {
     "num_players": 5,
     "num_decks": 5,
+    "default_init_money": 1000,
     "min_bet": 10.0,
     "dealer_soft_17": "H",
     "blackjack_payout": 1.5,

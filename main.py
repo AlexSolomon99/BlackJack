@@ -6,6 +6,10 @@ import utils
 
 # set up the logger
 log_conf_path = r"./conf/log_conf.txt"
+logs_path = r"./logs"
+if not os.path.isdir(logs_path):
+    os.mkdir(logs_path)
+
 log = logger.BJLog(conf_file_path=log_conf_path).create_logger(app_name="BlackJack")
 log.info(f"Start game!")
 
@@ -18,6 +22,12 @@ game_config = utils.read_json(game_config_path)
 app = blackjack_game.BlackJack(game_config=game_config,
                                deterministic=True,
                                log=log)
+
+log.info(f"Player dictionary: {app.players_dict}")
+log.info(f"Game deck: {app.deck}")
+
+for card in app.deck:
+    log.info(f"Card - Value: {card.face_value} | Symbol: {card.symbol} | Values: {card.values}")
 
 log.info(f"App finished!")
 

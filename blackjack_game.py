@@ -39,6 +39,12 @@ class BlackJack:
         # create the players
         for num_player in range(self.num_players):
             self.players_dict[num_player] = player.Player(initial_money=self.default_init_money)
+
+            # give 2 cards to the current player
+            card_1 = self.deck.pop(0)
+            card_2 = self.deck.pop(0)
+            self.players_dict[num_player].set_initial_hand([card_1, card_2], init_bet=self.min_bet)
+
         self.current_player_idx = 0
 
     def step(self, player_action: str = None):
@@ -48,6 +54,22 @@ class BlackJack:
         # validate action - check if the action is possible
         is_action_possible = current_hand.is_action_possible()
 
+        # perform action
+        if is_action_possible:
+            if player_action in [self.HIT, self.DOUBLE]:
+                new_card = self.deck.pop(0)
+                current_hand.apply_action(player_action, new_card=new_card, bet=self.min_bet)
+            elif player_action in [self.SPLIT]:
+                new_card_1 = self.deck.pop(0)
+                new_card_2 = self.deck.pop(0)
+                current_hand.apply_action(player_action,
+                                          new_card_1=new_card_1,
+                                          new_card_2=new_card_2,
+                                          bet=self.min_bet)
+            elif player_action in [self.STAND]:
+                current_hand.apply_action(player_action)
+        else:
+            pass
 
     def create_multiple_card_decks(self, num_decks: int) -> list:
         """

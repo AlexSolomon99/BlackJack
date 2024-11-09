@@ -28,6 +28,9 @@ class BlackJack:
         self.players_dict = {}
         self.current_player_idx = 0
 
+        # default action
+        self.default_action = self.HIT
+
         # reset
         self.reset()
 
@@ -47,29 +50,51 @@ class BlackJack:
 
         self.current_player_idx = 0
 
-    def step(self, player_action: str = None):
-        current_player = self.players_dict[self.current_player_idx]
-        current_hand = current_player.hands[current_player.current_hand_idx]
+    def step(self, current_hand: player.BlackJackHand, player_action: str = None) -> (bool, float):
+        """
+        :param current_hand:
+        :param player_action:
+        :return: (is_hand_open, hand_max_value)
+        """
+        # check if the hand is closed or can still be played
+        if current_hand.is_hand_closed:
+            return False, current_hand.max_value
 
+        # if it is not closed, apply the action
         # validate action - check if the action is possible
-        is_action_possible = current_hand.is_action_possible()
+        is_action_possible = current_hand.is_action_possible(action=player_action)
+
+        if is_action_possible:
+            action_to_take = player_action
+        else:
+            action_to_take = self.default_action
 
         # perform action
-        if is_action_possible:
-            if player_action in [self.HIT, self.DOUBLE]:
-                new_card = self.deck.pop(0)
-                current_hand.apply_action(player_action, new_card=new_card, bet=self.min_bet)
-            elif player_action in [self.SPLIT]:
-                new_card_1 = self.deck.pop(0)
-                new_card_2 = self.deck.pop(0)
-                current_hand.apply_action(player_action,
-                                          new_card_1=new_card_1,
-                                          new_card_2=new_card_2,
-                                          bet=self.min_bet)
-            elif player_action in [self.STAND]:
-                current_hand.apply_action(player_action)
+        if action_to_take in [self.HIT, self.DOUBLE]:
+            new_card = self.deck.pop(0)
+            action_kwargs = {"new_card": new_card,
+                             "bet": self.min_bet}
+
+        elif action_to_take in [self.SPLIT]:
+            new_card_1 = self.deck.pop(0)
+            new_card_2 = self.deck.pop(0)
+            action_kwargs = {"new_card_1": new_card_1,
+                             "new_card_2": new_card_2,
+                             "bet": self.min_bet}
+
+        elif action_to_take in [self.STAND]:
+            current_hand.apply_action(action_to_take)
+            action_kwargs = {}
         else:
-            pass
+            action_kwargs = {}
+
+        # apply action
+        current_hand.apply_action(action_to_take, **action_kwargs)
+
+        # check if the hand is closed or can still be played
+        if current_hand.is_hand_closed:
+            return False, current_hand.max_value
+        return True, current_hand.max_value
 
     def create_multiple_card_decks(self, num_decks: int) -> list:
         """

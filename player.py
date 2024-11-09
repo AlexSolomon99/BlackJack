@@ -42,6 +42,7 @@ class BlackJackHand:
         self.blackjack_status = False
         self.win_status = False
         self.money_value = money_value
+        self.max_value = -1
 
         # set the hand's status
         self.possible_actions = [self.WAIT]
@@ -50,6 +51,20 @@ class BlackJackHand:
         self.cards = None
         self.card_values = None
         self.set_initial_cards(initial_cards=initial_cards)
+
+    @property
+    def is_winner(self):
+        return self.win_status
+
+    @property
+    def is_blackjack(self):
+        return self.blackjack_status
+
+    @property
+    def is_hand_closed(self):
+        if self.possible_actions == [self.STAND]:
+            return True
+        return False
 
     def apply_action(self, action, input_kwargs):
         action_dict = {
@@ -68,6 +83,7 @@ class BlackJackHand:
     def set_initial_cards(self, initial_cards):
         self.cards = initial_cards
         self.card_values = self.compute_hand_values()
+        self.max_value = self.compute_max_value()
 
         # check the card values
         if 21 in self.card_values:
@@ -78,6 +94,16 @@ class BlackJackHand:
             self.possible_actions = [self.HIT, self.DOUBLE, self.STAND, self.SURRENDER]
             if self.cards[0] == self.cards[1]:
                 self.possible_actions.append(self.SPLIT)
+
+    def compute_max_value(self):
+        # compute max value of the hand
+        max_value = -1
+        for value in self.card_values:
+            if value <= 21:
+                max_value = value
+            else:
+                break
+        return max_value
 
     def compute_hand_values(self):
         values = [0]
@@ -107,6 +133,7 @@ class BlackJackHand:
         new_values = list(set(new_values))
         new_values.sort()
         self.card_values = copy.deepcopy(new_values)
+        self.max_value = self.compute_max_value()
 
     def add_card_to_hand(self, new_card: cards.BlackJackCard, additional_bet: float = 0):
         self.cards.append(new_card)
@@ -121,11 +148,13 @@ class BlackJackHand:
         if 21 in self.card_values:
             self.win_status = True
             self.possible_actions = [self.STAND]
+            self.stand()
         elif min(self.card_values) > 21:
             self.possible_actions = [self.STAND]
+            self.stand()
         else:
             # set the possible actions
-            self.possible_actions = [self.HIT, self.DOUBLE, self.STAND, self.SURRENDER]
+            self.possible_actions = [self.HIT, self.DOUBLE, self.STAND]
 
     def double(self, new_card: cards.BlackJackCard, bet, *args, **kwargs):
         # add the new card to the hand
@@ -135,9 +164,11 @@ class BlackJackHand:
         if 21 in self.card_values:
             self.win_status = True
             self.possible_actions = [self.STAND]
+            self.stand()
         else:
             # set the possible actions
-            self.possible_actions = [self.STAND, self.SURRENDER]
+            self.possible_actions = [self.STAND]
+            self.stand()
 
     def split(self, new_card_1, new_card_2, bet, *args, **kwargs):
         # check if the split is possible
@@ -152,6 +183,7 @@ class BlackJackHand:
         return first_hand, second_hand
 
     def stand(self, *args, **kwargs):
+        self.max_value = self.compute_max_value()
         return None
 
 

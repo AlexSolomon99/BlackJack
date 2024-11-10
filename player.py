@@ -6,17 +6,20 @@ import cards
 
 class Player:
 
-    def __init__(self, initial_money: float):
+    def __init__(self, initial_money: float, log):
+        # set the log
+        self.log = log
+
         # the amount of money the player has and its playing hands
         self.initial_money = initial_money
         self.current_money = initial_money
         self.hands = []
         self.current_hand_idx = 0
 
-    @staticmethod
-    def create_hand(dealt_cards: [], init_bet: float):
+    def create_hand(self, dealt_cards: [], init_bet: float):
         playing_hand = BlackJackHand(initial_cards=dealt_cards,
-                                     money_value=init_bet)
+                                     money_value=init_bet,
+                                     log=self.log)
         return playing_hand
 
     def set_initial_hand(self, dealt_cards: [], init_bet: float):
@@ -25,6 +28,12 @@ class Player:
         self.hands = [hand]
 
         self.current_money -= init_bet
+
+    def __str__(self):
+        return f"Money: {self.current_money} | Init Money: {self.initial_money} | Hands: {self.hands}"
+
+    def __repr__(self):
+        return f"Money: {self.current_money} | Init Money: {self.initial_money} | Hands: {self.hands}"
 
 
 class BlackJackHand:
@@ -35,9 +44,11 @@ class BlackJackHand:
     DOUBLE = "double"
     SPLIT = "split"
     STAND = "stand"
-    SURRENDER = "surrender"
 
-    def __init__(self, initial_cards: List[cards.BlackJackCard], money_value: float):
+    def __init__(self, initial_cards: List[cards.BlackJackCard], money_value: float, log):
+        # set the log
+        self.log = log
+
         # win status
         self.blackjack_status = False
         self.win_status = False
@@ -66,7 +77,7 @@ class BlackJackHand:
             return True
         return False
 
-    def apply_action(self, action, input_kwargs):
+    def apply_action(self, action, **input_kwargs):
         action_dict = {
             self.STAND: self.stand,
             self.HIT: self.hit,
@@ -74,6 +85,16 @@ class BlackJackHand:
             self.SPLIT: self.split
         }
         return action_dict[action](**input_kwargs)
+
+    @staticmethod
+    def action_wrap(action_function):
+        def wrapper(*args, **kwargs):
+            result = action_function(*args, **kwargs)
+            if result is None:
+                return None, None
+            return result
+
+        return wrapper
 
     def is_action_possible(self, action):
         if action in self.possible_actions:
@@ -91,11 +112,15 @@ class BlackJackHand:
             self.blackjack_status = True
             self.possible_actions = [self.STAND]
         else:
-            self.possible_actions = [self.HIT, self.DOUBLE, self.STAND, self.SURRENDER]
+            self.possible_actions = [self.HIT, self.DOUBLE, self.STAND]
             if self.cards[0] == self.cards[1]:
                 self.possible_actions.append(self.SPLIT)
 
     def compute_max_value(self):
+        # set blackjack value
+        if self.blackjack_status:
+            return 22
+
         # compute max value of the hand
         max_value = -1
         for value in self.card_values:
@@ -140,6 +165,7 @@ class BlackJackHand:
         self.money_value += additional_bet
         self.add_card_value(new_card=new_card)
 
+    @action_wrap
     def hit(self, new_card: cards.BlackJackCard, *args, **kwargs):
         # add the new card to the hand
         self.add_card_to_hand(new_card=new_card, additional_bet=0)
@@ -156,6 +182,9 @@ class BlackJackHand:
             # set the possible actions
             self.possible_actions = [self.HIT, self.DOUBLE, self.STAND]
 
+        return None, None
+
+    @action_wrap
     def double(self, new_card: cards.BlackJackCard, bet, *args, **kwargs):
         # add the new card to the hand
         self.add_card_to_hand(new_card=new_card, additional_bet=bet)
@@ -170,21 +199,40 @@ class BlackJackHand:
             self.possible_actions = [self.STAND]
             self.stand()
 
+    @action_wrap
     def split(self, new_card_1, new_card_2, bet, *args, **kwargs):
         # check if the split is possible
         initial_cards = self.cards
 
         # create the first new hand
-        first_hand = BlackJackHand(initial_cards=[initial_cards[0], new_card_1], money_value=bet)
+        first_hand = BlackJackHand(initial_cards=[initial_cards[0], new_card_1], money_value=bet, log=self.log)
 
         # create the second new hand
-        second_hand = BlackJackHand(initial_cards=[initial_cards[1], new_card_2], money_value=bet)
+        second_hand = BlackJackHand(initial_cards=[initial_cards[1], new_card_2], money_value=bet, log=self.log)
 
         return first_hand, second_hand
 
+    @action_wrap
     def stand(self, *args, **kwargs):
         self.max_value = self.compute_max_value()
-        return None
+
+    def __str__(self):
+        cards_str_output = ""
+        for card in self.cards:
+            cards_str_output += f"{card} "
+
+        output_str = f"Max Value: {self.max_value} | Hand: {cards_str_output} | Possible Actions: {self.possible_actions}"
+
+        return output_str
+
+    def __repr__(self):
+        cards_str_output = ""
+        for card in self.cards:
+            cards_str_output += f"{card} "
+
+        output_str = f"Max Value: {self.max_value} | Hand: {cards_str_output} | Possible Actions: {self.possible_actions}"
+
+        return output_str
 
 
 

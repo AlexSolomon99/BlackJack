@@ -19,6 +19,7 @@ base_conf = r"./conf"
 game_config_path = os.path.join(base_conf, "game_config.json")
 game_config = utils.read_json(game_config_path)
 
+# the game resets when initiated
 app = blackjack_game.BlackJack(game_config=game_config,
                                deterministic=True,
                                log=log)
@@ -26,8 +27,8 @@ app = blackjack_game.BlackJack(game_config=game_config,
 log.info(f"Player dictionary: {app.players_dict}")
 log.info(f"Game deck: {app.deck}")
 
-for card in app.deck:
-    log.info(f"Card - Value: {card.face_value} | Symbol: {card.symbol} | Values: {card.values}")
+# play one game
+app.play_one_game()
 
 log.info(f"App finished!")
 

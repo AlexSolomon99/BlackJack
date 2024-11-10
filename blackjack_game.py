@@ -5,7 +5,6 @@ import player
 
 
 class BlackJack:
-
     # actions
     HIT = "hit"
     DOUBLE = "double"
@@ -41,17 +40,95 @@ class BlackJack:
 
         # create the players
         for num_player in range(self.num_players):
-            self.players_dict[num_player] = player.Player(initial_money=self.default_init_money)
+            self.players_dict[num_player] = player.Player(initial_money=self.default_init_money, log=self.log)
 
             # give 2 cards to the current player
             card_1 = self.deck.pop(0)
             card_2 = self.deck.pop(0)
             self.players_dict[num_player].set_initial_hand([card_1, card_2], init_bet=self.min_bet)
 
+        # give the dealer its hand
+        card_1 = self.deck.pop(0)
+        card_2 = self.deck.pop(0)
+        self.players_dict["dealer"] = player.Player(initial_money=1e10, log=self.log)
+        self.players_dict["dealer"].set_initial_hand([card_1, card_2], init_bet=self.min_bet)
+
         self.current_player_idx = 0
 
-    def step(self, current_hand: player.BlackJackHand, player_action: str = None) -> (bool, float):
+    def play_one_game(self):
+        self.log.info(f"Started game")
+        for player_idx in self.players_dict:
+            self.log.info(f"Player {player_idx}")
+            # loop only through the non-dealer players
+            if player_idx == "dealer":
+                break
+
+            # get the current player
+            self.current_player_idx = player_idx
+            hand_idx = 0
+
+            # iterate through all the hands
+            while hand_idx < len(self.players_dict[player_idx].hands):
+                self.log.info(f"Initial Hand: {self.players_dict[player_idx].hands[hand_idx]}")
+                is_hand_open = True
+
+                # select player action
+                player_action = self.SPLIT
+
+                while is_hand_open:
+                    is_hand_open, hand_max_val = self.step(
+                        player_idx=player_idx,
+                        hand_idx=hand_idx,
+                        current_hand=self.players_dict[player_idx].hands[hand_idx],
+                        player_action=player_action)
+                    self.log.info(f"Current Hand: {self.players_dict[player_idx].hands[hand_idx]}")
+
+                hand_idx += 1
+
+        # play the dealer - always hits until above 16
+        player_idx = "dealer"
+        hand_max_val = -1
+        hand_idx = 0
+        player_action = self.HIT
+        self.log.info(f"Initial Dealer Hand: {self.players_dict[player_idx].hands[hand_idx]}")
+
+        while hand_max_val <= 16.0:
+            is_hand_open, hand_max_val = self.step(
+                player_idx=player_idx,
+                hand_idx=0,
+                current_hand=self.players_dict[player_idx].hands[hand_idx],
+                player_action=player_action)
+            self.log.info(f"Dealer Hand: {self.players_dict[player_idx].hands[hand_idx]}")
+
+        # compute payout
+        dealer_score = self.players_dict["dealer"].hands[0].max_value
+
+        for player_idx in self.players_dict:
+            # loop only through the non-dealer players
+            if player_idx == "dealer":
+                break
+
+            for hand in self.players_dict[player_idx].hands:
+                hand_bet = hand.money_value
+                if hand.max_value > dealer_score:
+                    # check if the value is given by a blackjack or not
+                    if hand.max_value == "22":
+                        return_money = (self.blackjack_payout + 1) * hand_bet
+                    else:
+                        return_money = 2 * hand_bet
+                    self.players_dict[player_idx].current_money += return_money
+
+                elif hand.max_value == dealer_score:
+                    self.players_dict[player_idx].current_money += hand_bet
+                else:
+                    # the player gets no money
+                    pass
+
+    def step(self, player_idx: [int | str], hand_idx: int, current_hand: player.BlackJackHand,
+             player_action: str = None) -> (bool, float):
         """
+        :param player_idx:
+        :param hand_idx:
         :param current_hand:
         :param player_action:
         :return: (is_hand_open, hand_max_value)
@@ -69,7 +146,7 @@ class BlackJack:
         else:
             action_to_take = self.default_action
 
-        # perform action
+        # compute the arguments needed to perform the action
         if action_to_take in [self.HIT, self.DOUBLE]:
             new_card = self.deck.pop(0)
             action_kwargs = {"new_card": new_card,
@@ -83,13 +160,18 @@ class BlackJack:
                              "bet": self.min_bet}
 
         elif action_to_take in [self.STAND]:
-            current_hand.apply_action(action_to_take)
             action_kwargs = {}
         else:
             action_kwargs = {}
 
         # apply action
-        current_hand.apply_action(action_to_take, **action_kwargs)
+        first_hand, second_hand = current_hand.apply_action(action_to_take, **action_kwargs)
+
+        # in case of split, do smth special
+        if (first_hand is not None) and (second_hand is not None):
+            self.players_dict[player_idx].hands[hand_idx] = first_hand
+            current_hand = self.players_dict[player_idx].hands[hand_idx]
+            self.players_dict[player_idx].hands.append(second_hand)
 
         # check if the hand is closed or can still be played
         if current_hand.is_hand_closed:

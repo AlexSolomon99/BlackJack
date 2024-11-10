@@ -32,3 +32,9 @@ class BlackJackCard:
             return True
         return False
 
+    def __str__(self):
+        return f"[{self.face_value}, {self.symbol}]"
+
+    def __repr__(self):
+        return f"[{self.face_value}, {self.symbol}]"
+

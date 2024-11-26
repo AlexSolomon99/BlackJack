@@ -2,6 +2,7 @@ import random
 
 import cards
 import player
+import strategy
 
 
 class BlackJack:
@@ -87,12 +88,13 @@ class BlackJack:
 
         # play the dealer - always hits until above 16
         player_idx = "dealer"
-        hand_max_val = -1
+        is_hand_open = True
         hand_idx = 0
+        hand_max_val = self.players_dict[player_idx].hands[hand_idx].compute_max_value()
         player_action = self.HIT
         self.log.info(f"Initial Dealer Hand: {self.players_dict[player_idx].hands[hand_idx]}")
 
-        while hand_max_val <= 16.0:
+        while (hand_max_val <= 16.0) and is_hand_open:
             is_hand_open, hand_max_val = self.step(
                 player_idx=player_idx,
                 hand_idx=0,

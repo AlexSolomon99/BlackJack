@@ -1,5 +1,5 @@
 {
-    "num_players": 5,
+    "num_players": 1,
     "num_decks": 5,
     "default_init_money": 1000,
     "min_bet": 10.0,

@@ -2,7 +2,7 @@ import random
 
 import cards
 import player
-import strategy
+import strategies_factory
 
 
 class BlackJack:
@@ -41,7 +41,12 @@ class BlackJack:
 
         # create the players
         for num_player in range(self.num_players):
-            self.players_dict[num_player] = player.Player(initial_money=self.default_init_money, log=self.log)
+            player_strat_name = self.players_strategy[str(num_player)]
+            player_strat = strategies_factory.StrategyFactory.instantiate_strategy(strat_name=player_strat_name,
+                                                                                   strat_attr={})
+            self.players_dict[num_player] = player.Player(initial_money=self.default_init_money,
+                                                          strategy=player_strat,
+                                                          log=self.log)
 
             # give 2 cards to the current player
             card_1 = self.deck.pop(0)
@@ -51,40 +56,27 @@ class BlackJack:
         # give the dealer its hand
         card_1 = self.deck.pop(0)
         card_2 = self.deck.pop(0)
-        self.players_dict["dealer"] = player.Player(initial_money=1e10, log=self.log)
+        dealer_strat = strategies_factory.StrategyFactory.instantiate_strategy(strat_name="dealer",
+                                                                               strat_attr={})
+        self.players_dict["dealer"] = player.Player(initial_money=1e10,
+                                                    strategy=dealer_strat,
+                                                    log=self.log)
         self.players_dict["dealer"].set_initial_hand([card_1, card_2], init_bet=self.min_bet)
 
         self.current_player_idx = 0
 
     def play_one_game(self):
         self.log.info(f"Started game")
+
+        # play the hands of the players, without the dealer
         for player_idx in self.players_dict:
             self.log.info(f"Player {player_idx}")
             # loop only through the non-dealer players
             if player_idx == "dealer":
                 break
 
-            # get the current player
-            self.current_player_idx = player_idx
-            hand_idx = 0
-
-            # iterate through all the hands
-            while hand_idx < len(self.players_dict[player_idx].hands):
-                self.log.info(f"Initial Hand: {self.players_dict[player_idx].hands[hand_idx]}")
-                is_hand_open = True
-
-                # select player action
-                player_action = self.SPLIT
-
-                while is_hand_open:
-                    is_hand_open, hand_max_val = self.step(
-                        player_idx=player_idx,
-                        hand_idx=hand_idx,
-                        current_hand=self.players_dict[player_idx].hands[hand_idx],
-                        player_action=player_action)
-                    self.log.info(f"Current Hand: {self.players_dict[player_idx].hands[hand_idx]}")
-
-                hand_idx += 1
+            # play the hand or potential hands of one player
+            self.play_one_player(player_idx=player_idx)
 
         # play the dealer - always hits until above 16
         player_idx = "dealer"
@@ -125,6 +117,36 @@ class BlackJack:
                 else:
                     # the player gets no money
                     pass
+
+    def play_one_player(self, player_idx: [int | str]):
+        # set the current player
+        self.current_player_idx = player_idx
+        hand_idx = 0
+
+        # iterate through all the hands
+        while hand_idx < len(self.current_player.hands):
+            self.log.info(f"Initial Hand: {self.current_player.hands[hand_idx]}")
+            is_hand_open = True
+
+            # select player action
+            player_action = self.current_player.strategy.select_action(bj_hand=self.current_player.current_hand,
+                                                                       possible_actions=self.current_player.current_hand.possible_actions)
+            self.log.info(f"Action: {player_action}")
+
+            while is_hand_open:
+                is_hand_open, hand_max_val = self.step(
+                    player_idx=player_idx,
+                    hand_idx=hand_idx,
+                    current_hand=self.current_player.current_hand,
+                    player_action=player_action)
+                self.log.info(f"Current Hand: {self.current_player.hands[hand_idx]}")
+
+                # re-select player action
+                player_action = self.current_player.strategy.select_action(bj_hand=self.current_player.current_hand,
+                                                                           possible_actions=self.current_player.current_hand.possible_actions)
+                self.log.info(f"Action: {player_action}")
+
+            hand_idx += 1
 
     def step(self, player_idx: [int | str], hand_idx: int, current_hand: player.BlackJackHand,
              player_action: str = None) -> (bool, float):
@@ -171,9 +193,9 @@ class BlackJack:
 
         # in case of split, do smth special
         if (first_hand is not None) and (second_hand is not None):
-            self.players_dict[player_idx].hands[hand_idx] = first_hand
+            self.current_player.hands[hand_idx] = first_hand
             current_hand = self.players_dict[player_idx].hands[hand_idx]
-            self.players_dict[player_idx].hands.append(second_hand)
+            self.current_player.hands.append(second_hand)
 
         # check if the hand is closed or can still be played
         if current_hand.is_hand_closed:
@@ -290,3 +312,11 @@ class BlackJack:
         :return type: float
         """
         return self.game_config["default_init_money"]
+
+    @property
+    def current_player(self) -> player.Player:
+        return self.players_dict[self.current_player_idx]
+
+    @property
+    def players_strategy(self):
+        return self.game_config["players_strategy"]

@@ -1,5 +1,6 @@
 import abc
 import player
+import random
 
 # actions
 WAIT = "wait"
@@ -32,4 +33,16 @@ class DealerStrategy(AbstractStrategy):
         if hand_max_value >= self.dealer_max:
             return STAND
         return HIT
+
+
+class RandomStrategy(AbstractStrategy):
+
+    def __init__(self):
+        pass
+
+    def select_action(self,
+                      bj_hand: player.BlackJackHand,
+                      possible_actions: list,
+                      *args, **kwargs):
+        return random.choice(possible_actions)
 

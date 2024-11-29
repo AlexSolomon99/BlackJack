@@ -2,11 +2,12 @@ from typing import List
 import copy
 
 import cards
+import strategies
 
 
 class Player:
 
-    def __init__(self, initial_money: float, log):
+    def __init__(self, initial_money: float, strategy: strategies.AbstractStrategy, log):
         # set the log
         self.log = log
 
@@ -15,6 +16,9 @@ class Player:
         self.current_money = initial_money
         self.hands = []
         self.current_hand_idx = 0
+
+        # set the strategy
+        self.strategy = strategy
 
     def create_hand(self, dealt_cards: [], init_bet: float):
         playing_hand = BlackJackHand(initial_cards=dealt_cards,
@@ -28,6 +32,14 @@ class Player:
         self.hands = [hand]
 
         self.current_money -= init_bet
+
+    @property
+    def current_hand(self):
+        if self.current_hand_idx >= len(self.hands):
+            log_msg = f"Hand with index {self.current_hand_idx} does not exist"
+            self.log.error(log_msg)
+            raise IndexError(log_msg)
+        return self.hands[self.current_hand_idx]
 
     def __str__(self):
         return f"Money: {self.current_money} | Init Money: {self.initial_money} | Hands: {self.hands}"

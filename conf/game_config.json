@@ -1,5 +1,8 @@
 {
     "num_players": 1,
+    "players_strategy": {
+        "0": "random"
+    },
     "num_decks": 5,
     "default_init_money": 1000,
     "min_bet": 10.0,
